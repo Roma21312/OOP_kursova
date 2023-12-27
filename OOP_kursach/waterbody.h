@@ -7,19 +7,22 @@
 #include "Plant.h"
 
 class Waterbody {
-public:
+private:
     QString name;
     QString type;
     QString location;
-    QPair<double, double> coordinates;
-    double size;
-    std::vector<Fish> fishes;
-    std::vector<Plant> plants;
 
-    Waterbody(const QString& n, const QString& t, const QString& loc,
-              const QPair<double, double>& coords, double s);
+public:
+    Waterbody(const QString& name, const QString& type, const QString& location);
 
-    void displayInfo() const;
+    QString getName() const;
+    void setName(const QString& n);
+
+    QString getType() const;
+    void setType(const QString& t);
+
+    QString getLocation() const;
+    void setLocation(const QString& loc);
 };
 
 #endif // WATERBODY_H

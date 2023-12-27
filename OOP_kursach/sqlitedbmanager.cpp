@@ -1,44 +1,16 @@
 #include "sqlitedbmanager.h"
-#include "PassengerTrain.h"
-#include "Plain.h"
+#include "Waterbody.h"
+#include "Plant.h"
+#include "Fish.h"
 
 #include <QDate>
 #include <QDebug>
 #include <QFile>
 #include <QObject>
-#include <QSqlError>
-#include <QSqlQuery>
-
-SqliteDBManager* SqliteDBManager::instance = nullptr;
-
-SqliteDBManager::SqliteDBManager() {
-    db = QSqlDatabase::addDatabase("QSQLITE");
-    db.setHostName(DATABASE_HOST_NAME);
-    db.setDatabaseName(DATABASE_FILE_NAME);
-}
-
-SqliteDBManager* SqliteDBManager::getInstance() {
-    if (instance == nullptr) {
-        instance = new SqliteDBManager();
-    }
-    return instance;
-}
-
-void SqliteDBManager::connectToDataBase() {
-    if (QFile(DATABASE_FILE_NAME).exists()) {
-        this->openDataBase();
-    } else {
-        this->restoreDataBase();
-    }
-}
-
-QSqlDatabase SqliteDBManager::getDB() {
-    return db;
-}
 
 bool SqliteDBManager::restoreDataBase() {
     if (this->openDataBase()) {
-        if (!this->createTables()) {
+        if (!this->createTable()) {
             return false;
         } else {
             return true;
@@ -50,6 +22,9 @@ bool SqliteDBManager::restoreDataBase() {
 }
 
 bool SqliteDBManager::openDataBase() {
+    /* База даних відкривається по вказаному шляху
+     * та імені бази даних, якщо вона існує
+     * */
     if (db.open()) {
         return true;
     } else
@@ -60,81 +35,93 @@ void SqliteDBManager::closeDataBase() {
     db.close();
 }
 
-bool SqliteDBManager::createTables() {
+bool SqliteDBManager::createTable() {
+    /* В даному випадку використовується фурмування сирого SQL-запиту
+     * з наступним його виконанням.
+     * */
     QSqlQuery query;
-    if (!query.exec("CREATE TABLE Trains ("
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    "departurePoint TEXT NOT NULL, "
-                    "destinationPoint TEXT NOT NULL, "
-                    "departureTime TEXT NOT NULL, "
-                    "numberSeats INTEGER NOT NULL, "
-                    "travelDuration INTEGER NOT NULL, "
-                    "trainNumber INTEGER NOT NULL, "
-                    "name TEXT NOT NULL, "
-                    "route INTEGER NOT NULL"
-                    " )"
-                    )) {
-        qDebug() << "DataBase: error of create Trains";
+    if (!query.exec("CREATE TABLE waterbody(\
+                        name TEXT,\
+                        type TEXT,\
+                        location TEXT\
+                    )") ){
+        qDebug() << "DataBase: error of create waterbody";
         qDebug() << query.lastError().text();
         return false;
     }
-    if (!query.exec("CREATE TABLE Plains ("
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    "departurePoint TEXT NOT NULL, "
-                    "destinationPoint TEXT NOT NULL, "
-                    "departureTime TEXT NOT NULL, "
-                    "numberSeats INTEGER NOT NULL, "
-                    "travelDuration INTEGER NOT NULL, "
-                    "flightNumber INTEGER NOT NULL"
-                    " )"
-                    )) {
-        qDebug() << "DataBase: error of create Plains";
+    if (!query.exec("CREATE TABLE fish(\
+                        name_waterbody TEXT,\
+                        name TEXT,\
+                        type TEXT,\
+                        FOREIGN KEY (name_waterbody) REFERENCES watebody(name)\
+                    )") ){
+        qDebug() << "DataBase: error of create fish";
         qDebug() << query.lastError().text();
         return false;
-    } else
+    }
+    if (!query.exec("CREATE TABLE plant(\
+                        name_waterbody TEXT,\
+                        name TEXT,\
+                        type TEXT,\
+                        FOREIGN KEY (name_waterbody) REFERENCES watebody(name)\
+                    )") ){
+        qDebug() << "DataBase: error of create plant";
+        qDebug() << query.lastError().text();
+        return false;
+    }else
         return true;
 }
 
-bool SqliteDBManager::inserIntoTable(PassengerTrain& train) {
+bool SqliteDBManager::inserIntoTable(Waterbody& waterbody) {
     QSqlQuery query;
-    query.prepare("INSERT INTO Trains (id, departurePoint, destinationPoint, departureTime, numberSeats, travelDuration, trainNumber, name, route) "
-                  "VALUES (:id, :departurePoint, :destinationPoint, :departureTime, :numberSeats, :travelDuration, :trainNumber, :name, :route)");
-    query.bindValue(":id", train.GetId());
-    query.bindValue(":departurePoint", QString::fromStdString(train.GetDeparturePoint()));
-    query.bindValue(":destinationPoint", QString::fromStdString(train.GetDestinationPoint()));
-    query.bindValue(":departureTime", QString::fromStdString(train.GetDepartureTime()));
-    query.bindValue(":numberSeats", train.GetNumberSeats());
-    query.bindValue(":travelDuration", train.GetTravelDuration());
-    query.bindValue(":trainNumber", train.GetTrainNumber());
-    query.bindValue(":name", QString::fromStdString(train.GetName()));
-    query.bindValue(":route", train.GetRoute());
+    query.prepare("INSERT INTO Waterbody (name, type, location) "
+                  "VALUES (:name, :type, :location)");
+    query.bindValue(":name", QString::fromStdString(waterbody.getName()));
+    query.bindValue(":type", QString::fromStdString(waterbody.getType()));
+    query.bindValue(":location", QString::fromStdString(waterbody.getLocation()));
 
     if (!query.exec()) {
-        qDebug() << "error insert into Trains";
+        qDebug() << "error insert into Waterbody";
         qDebug() << query.lastError().text();
         qDebug() << query.lastQuery();
         return false;
-    } else
+    } else {
         return true;
+    }
 }
 
-bool SqliteDBManager::inserIntoTable(Plain& plain) {
+bool SqliteDBManager::inserIntoTable(Plant& plant) {
     QSqlQuery query;
-    query.prepare("INSERT INTO Plains (id, departurePoint, destinationPoint, departureTime, numberSeats, travelDuration, flightNumber) "
-                  "VALUES (:id, :departurePoint, :destinationPoint, :departureTime, :numberSeats, :travelDuration, :flightNumber)");
-    query.bindValue(":id", plain.GetId());
-    query.bindValue(":departurePoint", QString::fromStdString(plain.GetDeparturePoint()));
-    query.bindValue(":destinationPoint", QString::fromStdString(plain.GetDestinationPoint()));
-    query.bindValue(":departureTime", QString::fromStdString(plain.GetDepartureTime()));
-    query.bindValue(":numberSeats", plain.GetNumberSeats());
-    query.bindValue(":travelDuration", plain.GetTravelDuration());
-    query.bindValue(":flightNumber", plain.GetFlightNumber());
+    query.prepare("INSERT INTO Plant (name, type, waterbody_id) "
+                  "VALUES (:name, :type, :waterbody_id)");
+    query.bindValue(":name", QString::fromStdString(plant.getName()));
+    query.bindValue(":type", QString::fromStdString(plant.getType()));
+    query.bindValue(":waterbody_id", plant.getWaterbodyId());
 
     if (!query.exec()) {
-        qDebug() << "error insert into Plains";
+        qDebug() << "error insert into Plant";
         qDebug() << query.lastError().text();
         qDebug() << query.lastQuery();
         return false;
-    } else
+    } else {
         return true;
+    }
+}
+
+bool SqliteDBManager::inserIntoTable(Fish& fish) {
+    QSqlQuery query;
+    query.prepare("INSERT INTO Fish (name, species, waterbody_id) "
+                  "VALUES (:name, :species, :waterbody_id)");
+    query.bindValue(":name", QString::fromStdString(fish.getName()));
+    query.bindValue(":species", QString::fromStdString(fish.getSpecies()));
+    query.bindValue(":waterbody_id", fish.getWaterbodyId());
+
+    if (!query.exec()) {
+        qDebug() << "error insert into Fish";
+        qDebug() << query.lastError().text();
+        qDebug() << query.lastQuery();
+        return false;
+    } else {
+        return true;
+    }
 }

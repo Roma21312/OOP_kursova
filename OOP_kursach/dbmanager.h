@@ -1,8 +1,9 @@
 #ifndef DBMANAGER_H
 #define DBMANAGER_H
 
-#include "PassengerTrain.h"
-#include "Plain.h"
+#include "Fish.h"
+#include "Plant.h"
+#include "Waterbody.h"
 #include <QSqlDatabase>
 
 class DBManager {
@@ -11,8 +12,9 @@ public:
 
     virtual QSqlDatabase getDB() = 0;
 
-    virtual bool inserIntoTable(PassengerTrain &PassengerTrain) = 0;
-    virtual bool inserIntoTable(Plain &Plain) = 0;
+    virtual bool inserIntoTable(Plant &Plant) = 0;
+    virtual bool inserIntoTable(Fish &Fish) = 0;
+    virtual bool inserIntoTable(Waterbody &Waterbody) = 0;
 };
 
 #endif // DBMANAGER_H
